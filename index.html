@@ -1,0 +1,102 @@
+<!DOCTYPE HTML>
+<html  lang="es">
+<head>
+  <meta name="viewport" content="width=device-width,user-scalable=no">
+  <meta charset="utf-8"/>  
+<style>
+#canvasId {
+  background-color: #FFEEDD;
+}
+</style>
+</head>
+
+<body>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/js-polyfills/0.1.42/polyfill.js"></script>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <canvas id="canvasId" width="490" height="220"></canvas>
+  <div>
+  <button id="btnBorrar">borrar</button>
+  <button id="btnGuardar">guardar</button>
+  </div>
+  
+  <script>
+    var canvas        = document.getElementById("canvasId");
+    var ctx           = canvas.getContext("2d");
+    var redimensionar = true;
+    var ancho         = canvas.width;
+    var alto          = canvas.height;
+
+    // registramos el evento de pegar
+    document.addEventListener('paste', function (e) {paste_auto(e); }, false);
+
+    // pegar
+    paste_auto = function (e) {
+      if (e.clipboardData) {
+        var items = e.clipboardData.items;
+        if (!items) return;
+        
+        // Leemos el contenido del portapapeles
+        for (var i = 0; i < items.length; i++) {
+          if (items[i].type.indexOf("image") !== -1) {
+            // Se trata de una imagen
+            var blob   = items[i].getAsFile();
+            var URLObj = window.URL || window.webkitURL;
+            var source = URLObj.createObjectURL(blob);
+            paste_createImage(source);
+          }
+        }
+        e.preventDefault();
+      }
+    };
+
+    // Dibuja la imagen en el canvas
+    paste_createImage = function (source) {
+      var pastedImage    = new Image();
+      pastedImage.onload = function () {
+        if (redimensionar == true) {
+          canvas.width  = pastedImage.width;
+          canvas.height = pastedImage.height;
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+        ctx.drawImage(pastedImage, 0, 0);
+      };
+      pastedImage.src = source;
+    };
+
+    var btnGuardar = document.getElementById('btnGuardar');
+    btnGuardar.addEventListener('click', guardar, false);
+
+    var btnBorrar = document.getElementById('btnBorrar');
+    btnBorrar.addEventListener('click', borrar, false);
+
+    function guardar(e) {
+      var imagen  = document.getElementById('canvasId');
+      var dataURL = imagen.toDataURL();
+      var xmlhttp = null;
+
+      axios({
+        url:    '/upload/',
+        method: 'POST',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', },
+        data: {
+          id:  "imagen.png",
+          img: dataURL
+        }
+      })
+      .then((response)=>{
+        borrar();
+      })
+    }
+
+    function borrar() {
+      // Borramos el área de dibujo
+      ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+      canvas.width  = ancho;
+      canvas.height = alto;
+    }    
+
+
+  </script>
+</body>
+</html>
